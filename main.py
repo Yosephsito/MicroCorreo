@@ -1,12 +1,13 @@
 from flask import Flask
 from app.correo import registrar_correo_bp
-from config import Config, init_firebase
+from app.config import Config
 
-app = Flask (__name__)
-app.config.from_object(Config)
-
-init_firebase()
-app.register_blueprint(registrar_correo_bp)
+def create_app():
+    app = Flask(__name__)
+    app.config.from_object(Config)
+    app.register_blueprint(registrar_correo_bp)
+    return app
 
 if __name__ == '__main__':
-    app.run()
+    app = create_app()
+    app.run(port=5000)

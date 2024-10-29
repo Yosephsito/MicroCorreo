@@ -1,27 +1,11 @@
 from flask import Blueprint, request, jsonify, url_for, current_app
 
-import firebase_admin
-from firebase_admin import credentials, firestore
+from .Firebase import db
 
-import smtplib
-from email.mime.text import MIMEText
-from itsdangerous import URLSafeTimedSerializer
-
+from .EnviarToken import generar_token, verificar_token
 from .Enviar_correo import enviar_correo
 
-# Instalar
-# # pip install firebase-admin
-# install itsdangerous
-# npm install -g firebase-tools
-
 registrar_correo_bp = Blueprint('registrar_correo_bp', __name__)
-
-# Configuración con firebase
-
-db = firestore.client()
-
-# Inicialización del serializador para generar tokens
-s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
 
 DatosTemporales = {}
 
@@ -36,14 +20,11 @@ def registrar_correo():
     contraseña = data.get('Contraseña')
     estado = data.get('Estado', True)
 
-    # Verificar si el correo ya existe en firebase
-    ReferenciasDeUsuario = db.collection('Usuarios').document(correo)
-
-    usuario_existente = ReferenciasDeUsuario.get()
-
-    if usuario_existente.exists:
-        return jsonify({'success': False, 
-                        'message': 'El correo ya existe'})
+    doc_ref = db.collection('Usuarios').document(correo)
+    if doc_ref.get().exists:
+       return jsonify({'sucess': False,
+                       'message': 'El cooreo ya existe'})
+    
 
     DatosTemporales[correo]={
         'tipo': tipo,
@@ -53,8 +34,7 @@ def registrar_correo():
     }
 
     # Generar el token para activación de la cuenta
-    token =  s.dumps(correo, 
-                   salt="token-activacion")
+    token = generar_token(correo)
 
     url_activacion = url_for('registrar_correo_bp.activar_cuenta', 
                              token=token, 
@@ -62,25 +42,21 @@ def registrar_correo():
     
     asunto = "Activa tu cuenta"
     cuerpo = f"Por favor haz clic en el siguiente enlace para activar tu cuenta: {url_activacion}, con nombre {nombre} contraseña {contraseña}"
+   
     # Enviar el correo con el token
     enviar_correo(correo, asunto, cuerpo)
 
     return jsonify({'success': True, 
                     'message': 'Correo de activación enviado'})
 
-
 @registrar_correo_bp.route('/activar/<token>', methods=['GET'])
 def activar_cuenta(token):
 
- try:
-    try:
-        # Verificar el token y obtener el correo asociado
-        correo = s.loads(token, 
-                         salt="token-activacion", 
-                         max_age=3000)  # El token expira en 5 minutos
-    except:
-        return jsonify({'success': False, 
-                        'message': 'Token inválido o expirado'})
+    correo = verificar_token(token)
+
+    if not correo:
+        return jsonify({'sucess': False,
+                        'message': 'Token invalido o expirado'})
     
     #obtener los datos del usuario almacenados temporalmente
     InfoUsuario= DatosTemporales.pop(correo, None)
@@ -99,6 +75,3 @@ def activar_cuenta(token):
     })
 
     return jsonify({'success': True, 'message': 'Cuenta activada exitosamente'})
-
- except Exception as e:
-    return jsonify({'sucess': False, 'message': str(e)})
