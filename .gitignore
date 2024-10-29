@@ -1,0 +1,10 @@
+.env
+Firebase.json
+
+# Ignorar archivos de configuración específicos
+__pycache__/
+*.pyc
+
+# Ignorar archivos de configuración de IDEs
+.vscode/
+.idea/

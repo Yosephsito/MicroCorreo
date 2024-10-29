@@ -1,0 +1,5 @@
+Flask==2.3.3
+firebase-admin==6.1.0
+itsdangerous==2.1.2
+smtplib
+python-dotenv==1.0.0
