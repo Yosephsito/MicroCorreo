@@ -1,0 +1,11 @@
+{
+    "build": {
+      "env": {
+        "FLASK_ENV": "production"
+      }
+    },
+    "deploy": {
+      "install": "pip install -r requirements.txt",
+      "start": "flask run --host=0.0.0.0"
+    }
+  }
